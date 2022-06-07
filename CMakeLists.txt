@@ -161,6 +161,12 @@ if(realsense2_FOUND)
     target_link_libraries(rgbd_inertial_realsense_D435i ${PROJECT_NAME})
 endif()
 
+# RGB-D inertial kinect examples
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/RGB-D-Inertial-Kinect)
+add_executable(rgbd_inertial_kinect
+        Examples/RGB-D-Inertial-Kinect/rgbd_inertial_kinect.cc)
+target_link_libraries(rgbd_inertial_kinect ${PROJECT_NAME})
+
 #Stereo examples
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/Stereo)
 
