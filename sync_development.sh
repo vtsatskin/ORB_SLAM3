@@ -38,6 +38,7 @@ run_rsync() {
       --exclude "ORB_SLAM3/Thirdparty/*" \
       --exclude "ORB_SLAM3/Examples_old/*" \
       --exclude "ORB_SLAM3/Vocabulary/*" \
+      --exclude "ORB_SLAM3/Examples/RGB-D-Inertial-Kinect/rgbd_inertial_kinect" \
       -e "ssh -p $TARGET_PORT" \
       "$SOURCE" \
       "$TARGET"
