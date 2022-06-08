@@ -62,7 +62,7 @@ int main(int argc, char **argv)
     device_config.depth_mode = K4A_DEPTH_MODE_NFOV_UNBINNED;
     device_config.camera_fps = K4A_FRAMES_PER_SECOND_15;
     device_config.color_format = K4A_IMAGE_FORMAT_COLOR_BGRA32;
-    device_config.color_resolution = K4A_COLOR_RESOLUTION_1080P;
+    device_config.color_resolution = K4A_COLOR_RESOLUTION_720P;
 
     // === Start Kinect Data Streams ===
     k4a::device device = k4a::device::open(0);
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM3::System SLAM(argv[1], argv[2], ORB_SLAM3::System::IMU_RGBD, true, 0, file_name);
 
-    auto calibration = device.get_calibration(K4A_DEPTH_MODE_NFOV_UNBINNED, K4A_COLOR_RESOLUTION_1080P);
+    auto calibration = device.get_calibration(device_config.depth_mode, device_config.color_resolution);
     auto transformation = k4a::transformation(calibration);
 
     while (!SLAM.isShutDown())
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
         k4a::capture capture;
         if (!device.get_capture(&capture))
         {
-            cerr << "Could not capture image" << endl;
+            cerr << "[Kinect] Could not capture image" << endl;
             continue;
         };
 
@@ -102,7 +102,9 @@ int main(int argc, char **argv)
             }
             imu_samples.push_back(imu_sample);
         }
-        std::cout << "Number of IMU samples: " << imu_samples.size() << std::endl;
+        std::cout << "[Kinect] Number of IMU samples: " << imu_samples.size() << std::endl;
+        // vector<k4a_imu_sample_t> last_n_imu_samples(imu_samples.end() - std::min<int>(imu_samples.size(), 50), imu_samples.end()); // TODO extract hardcoded value
+        // std::cout << "[Kinect] Number of used IMU samples: " << last_n_imu_samples.size() << std::endl;
 
         // Convert RBG, Depth, and IMU data to what ORBSlam3 expects
         k4a::image colorImg = capture.get_color_image();
@@ -110,12 +112,12 @@ int main(int argc, char **argv)
 
         if (!colorImg)
         {
-            std::cerr << "colorImg not found! skipping..." << std::endl;
+            std::cerr << "[Kinect] colorImg not found! skipping..." << std::endl;
             continue;
         }
         if (!depthImg)
         {
-            std::cerr << "depthImg not found! skipping..." << std::endl;
+            std::cerr << "[Kinect] depthImg not found! skipping..." << std::endl;
             continue;
         }
 
