@@ -73,6 +73,9 @@ int main(int argc, char **argv)
     // Create SLAM system. It initializes all system threads and gets ready to process frames.
     ORB_SLAM3::System SLAM(argv[1], argv[2], ORB_SLAM3::System::IMU_RGBD, true, 0, file_name);
 
+    auto calibration = device.get_calibration(K4A_DEPTH_MODE_NFOV_UNBINNED, K4A_COLOR_RESOLUTION_1080P);
+    auto transformation = k4a::transformation(calibration);
+
     while (!SLAM.isShutDown())
     {
         // Sample RGB and Depth
@@ -103,7 +106,7 @@ int main(int argc, char **argv)
 
         // Convert RBG, Depth, and IMU data to what ORBSlam3 expects
         k4a::image colorImg = capture.get_color_image();
-        k4a::image depthImg = capture.get_depth_image();
+        k4a::image depthImg = transformation.depth_image_to_color_camera(capture.get_depth_image());
 
         if (!colorImg)
         {
@@ -132,12 +135,12 @@ int main(int argc, char **argv)
             auto gyro = sample.gyro_sample.xyz;
             ORB_SLAM3::IMU::Point point(acc.x, acc.y, acc.z,
                                         gyro.x, gyro.y, gyro.z,
-                                        sample.acc_timestamp_usec);
+                                        sample.acc_timestamp_usec * 1e-6); // TODO: timestamp in seconds?
             imu_points.push_back(point);
         }
 
         std::chrono::microseconds timestamp = colorImg.get_device_timestamp();
-        SLAM.TrackRGBD(cvColorImg, cvDepthImg, timestamp.count(), imu_points);
+        SLAM.TrackRGBD(cvColorImg, cvDepthImg, timestamp.count() * 1e-6, imu_points);
     }
 
     return 0;
