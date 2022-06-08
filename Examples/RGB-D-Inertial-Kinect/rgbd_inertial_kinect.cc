@@ -102,7 +102,7 @@ int main(int argc, char **argv)
             }
             imu_samples.push_back(imu_sample);
         }
-        std::cout << "[Kinect] Number of IMU samples: " << imu_samples.size() << std::endl;
+        // std::cout << "[Kinect] Number of IMU samples: " << imu_samples.size() << std::endl;
         // vector<k4a_imu_sample_t> last_n_imu_samples(imu_samples.end() - std::min<int>(imu_samples.size(), 50), imu_samples.end()); // TODO extract hardcoded value
         // std::cout << "[Kinect] Number of used IMU samples: " << last_n_imu_samples.size() << std::endl;
 
