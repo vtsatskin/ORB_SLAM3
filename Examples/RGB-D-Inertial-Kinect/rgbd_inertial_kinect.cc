@@ -124,7 +124,7 @@ int main(int argc, char **argv)
         // See here for more information:
         // * https://github.com/microsoft/Azure-Kinect-Sensor-SDK/issues/1482#issuecomment-763596308
         cv::Mat cvColorImg = cv::Mat(colorImg.get_height_pixels(), colorImg.get_width_pixels(), CV_8UC4, colorImg.get_buffer(), (size_t)colorImg.get_stride_bytes());
-        cv::Mat cvDepthImg = cv::Mat(depthImg.get_height_pixels(), depthImg.get_width_pixels(), CV_8U, depthImg.get_buffer(), (size_t)depthImg.get_stride_bytes());
+        cv::Mat cvDepthImg = cv::Mat(depthImg.get_height_pixels(), depthImg.get_width_pixels(), CV_16U, depthImg.get_buffer(), (size_t)depthImg.get_stride_bytes());
 
         // Commented out code for debugging.
         // cv::imshow("cvColorImg", cvColorImg);
