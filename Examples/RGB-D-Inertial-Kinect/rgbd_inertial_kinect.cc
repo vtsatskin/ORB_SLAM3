@@ -86,6 +86,7 @@ int main(int argc, char **argv)
             continue;
         };
 
+        // === Read Kinect IMU ===
         // Read from the buffered IMU samples in the Kinect SDK. For more information see the following:
         // * https://microsoft.github.io/Azure-Kinect-Sensor-SDK/master/group___functions_ga8e5913b3bb94a453c7143bbd6e399a0e.html#ga8e5913b3bb94a453c7143bbd6e399a0e
         // * https://docs.microsoft.com/en-us/azure/kinect-dk/retrieve-imu-samples#access-imu-samples
@@ -93,7 +94,7 @@ int main(int argc, char **argv)
         vector<k4a_imu_sample_t> imu_samples;
         for (int i = 0; i < 1000; i++)
         {
-            k4a_imu_sample_t imu_sample; // TODO: don't allocate
+            k4a_imu_sample_t imu_sample;
             auto res = device.get_imu_sample(&imu_sample, 0ms);
             if (!res)
             {
@@ -102,13 +103,37 @@ int main(int argc, char **argv)
             }
             imu_samples.push_back(imu_sample);
         }
+        // The number of IMU samples provided is not guaranteed to be constant.
+        // Uncomment below to debug the number being provided to ORBSlam3:
         // std::cout << "[Kinect] Number of IMU samples: " << imu_samples.size() << std::endl;
-        // vector<k4a_imu_sample_t> last_n_imu_samples(imu_samples.end() - std::min<int>(imu_samples.size(), 50), imu_samples.end()); // TODO extract hardcoded value
+
+        // To have an upper bound on the images, uncomment below and use
+        // `last_n_imu_samples` when constructing imu_points:
+        //
+        // auto NUM_IMU_SAMPLES = 50; // When changing this value ensure you update the calibration file.
+        // vector<k4a_imu_sample_t> last_n_imu_samples(imu_samples.end() - std::min<int>(imu_samples.size(), NUM_IMU_SAMPLES), imu_samples.end());
         // std::cout << "[Kinect] Number of used IMU samples: " << last_n_imu_samples.size() << std::endl;
 
-        // Convert RBG, Depth, and IMU data to what ORBSlam3 expects
+        // === Align Kinect Images ===
+        // Aligns Kinect images.
+        //
+        // The depth images and RGB images do not have the same distortion. In
+        // order to align the images, one of two strategies can be applied:
+        //
+        // 1) Transform the depth image to align with the color image; OR
+        // 2) Transform the color image to align with the depth image.
+        //
+        // To change modes, comment one block and uncomment the other.
+        //
+        // Method (1) Depth image aligned to color image
         k4a::image colorImg = capture.get_color_image();
         k4a::image depthImg = transformation.depth_image_to_color_camera(capture.get_depth_image());
+        //
+        // Method (2) Color image aligned to depth image
+        // k4a::image depthImg = capture.get_depth_image();
+        // k4a::image colorImg = transformation.color_image_to_depth_camera(depthImg, capture.get_color_image());
+        //
+        // End kinect image alignment.
 
         if (!colorImg)
         {
@@ -121,15 +146,18 @@ int main(int argc, char **argv)
             continue;
         }
 
+        // === Convert Kinect Images to OpenCV ===
+        // Convert RBG, Depth, and IMU data to what ORBSlam3 expects
         // See here for more information:
         // * https://github.com/microsoft/Azure-Kinect-Sensor-SDK/issues/1482#issuecomment-763596308
         cv::Mat cvColorImg = cv::Mat(colorImg.get_height_pixels(), colorImg.get_width_pixels(), CV_8UC4, colorImg.get_buffer(), (size_t)colorImg.get_stride_bytes());
         cv::Mat cvDepthImg = cv::Mat(depthImg.get_height_pixels(), depthImg.get_width_pixels(), CV_16U, depthImg.get_buffer(), (size_t)depthImg.get_stride_bytes());
 
-        // Commented out code for debugging.
+        // Uncomment the following to debug images being sent to ORBSlam3
         // cv::imshow("cvColorImg", cvColorImg);
         // cv::imshow("cvDepthImg", cvDepthImg);
 
+        // === Convert Kinect IMU to ORBSlam format ===
         vector<ORB_SLAM3::IMU::Point> imu_points;
         for (auto const &sample : imu_samples)
         {
@@ -137,10 +165,12 @@ int main(int argc, char **argv)
             auto gyro = sample.gyro_sample.xyz;
             ORB_SLAM3::IMU::Point point(acc.x, acc.y, acc.z,
                                         gyro.x, gyro.y, gyro.z,
-                                        sample.acc_timestamp_usec * 1e-6); // TODO: timestamp in seconds?
+                                        sample.acc_timestamp_usec * 1e-6); // TODO: is timestamp supposed to be in seconds?
             imu_points.push_back(point);
         }
 
+        // === Perform SLAM ===
+        // TODO: is timestamp supposed to be in seconds?
         std::chrono::microseconds timestamp = colorImg.get_device_timestamp();
         SLAM.TrackRGBD(cvColorImg, cvDepthImg, timestamp.count() * 1e-6, imu_points);
     }
